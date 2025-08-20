@@ -1,6 +1,7 @@
 package dev.litebank.service;
 
 
+
 import dev.litebank.dto.requests.DepositRequest;
 import dev.litebank.dto.responses.DepositResponse;
 import dev.litebank.dto.PaymentMethod;
@@ -15,7 +16,7 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-
+@Sql(scripts = {"/db/data.sql"})
 @SpringBootTest
 public class AccountServiceTest {
 
@@ -24,7 +25,6 @@ public class AccountServiceTest {
 
 
     @Test
-    @Sql(scripts = {"/db/data.sql"})
     void testCanDeposit(){
         DepositRequest depositRequest = new DepositRequest();
         depositRequest.setPaymentMethod(PaymentMethod.CARD);
@@ -38,9 +38,10 @@ public class AccountServiceTest {
 
     @Test
     void testCanViewAccount(){
-        ViewAccountResponse response = accountService.viewDetailsFor("0123456789");
+        ViewAccountResponse response =
+                accountService.viewDetailsFor("0123456789");
         assertThat(response).isNotNull();
-        assertThat(response.getBalance()).isEqualTo("20000");
+        assertThat(response.getBalance()).isEqualTo(new BigDecimal("370000.00").toString());
     }
 
 }

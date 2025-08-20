@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static java.math.BigDecimal.ZERO;
+
 @Service
 @AllArgsConstructor
 public class AccountServiceImpl implements AccountService {
@@ -25,8 +27,8 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public DepositResponse deposit(DepositRequest depositRequest) {
-       accountRepository.findByAccountNumber(depositRequest.getAccountNumber())
-                        .orElseThrow(() -> new AccountNotFoundException("account not found"));
+        accountRepository.findByAccountNumber(depositRequest.getAccountNumber())
+                .orElseThrow(() -> new AccountNotFoundException("account not found"));
 
         //TODO: create transaction record
         CreateTransactionRequest createTransactionRequest = getCreateTransactionRequest(depositRequest);
@@ -39,7 +41,28 @@ public class AccountServiceImpl implements AccountService {
     public ViewAccountResponse viewDetailsFor(String accountNumber) {
         List<TransactionResponse> transactions =
                 transactionService.getTransactionsFor(accountNumber);
-        return null;
+        TransactionResponse transactionResponse = new TransactionResponse();
+        transactionResponse.setAmount(ZERO.toString());
+        TransactionResponse response = transactions.stream()
+                .reduce(transactionResponse,(a,b)->
+                        computeAccountBalanceFrom(a, b, transactionResponse));
+        ViewAccountResponse viewAccountResponse = new ViewAccountResponse();
+        viewAccountResponse.setBalance(response.getAmount());
+        return viewAccountResponse;
+    }
+
+    private static TransactionResponse computeAccountBalanceFrom(TransactionResponse a, TransactionResponse b, TransactionResponse transactionResponse) {
+        BigDecimal total = ZERO;
+        if (b.getTransactionType() == TransactionType.DEPOSIT)
+            total = total.add(new BigDecimal(b.getAmount()));
+
+        else
+            total = total.subtract(new BigDecimal(b.getAmount()));
+        transactionResponse.setAmount(
+                new BigDecimal(a.getAmount())
+                        .add(total).toString()
+        );
+        return transactionResponse;
     }
 
     private static DepositResponse buildDepositResponse(CreateTransactionResponse transactionResponse) {
